@@ -1,0 +1,13 @@
+/* src/styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* สไตล์เพิ่มเติม */
+body {
+  font-family: sans-serif;
+  background-color: #f9f9f9;
+  color: #111;
+  margin: 0;
+  padding: 0;
+}

@@ -4,7 +4,7 @@ import axios from 'axios'
 
 // สำหรับ public schema → ใช้กับ localhost เท่านั้น
 export const publicApi = axios.create({
-  baseURL: 'http://localhost:8003/book_project',
+    baseURL: 'http://localhost/book_project',
 })
 
 // แนบ Authorization header ทุกครั้ง

@@ -1,23 +1,20 @@
 ///src/app/layout.tsx
 
-import './globals.css'
-import { Inter } from 'next/font/google'
-import { AuthProvider } from '@/contexts/AuthContext'
+import AppLayout from '@/components/layout/AppLayout'
+import '@/styles/globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+import type { Metadata } from 'next'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Book Rental SaaS',
-  description: 'Multi-Tenant Book Rental Platform',
+  description: 'ระบบเช่าหนังสือแบบหลายสาขา',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body>
+        <AppLayout>{children}</AppLayout>
       </body>
     </html>
   )

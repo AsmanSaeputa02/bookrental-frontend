@@ -2,12 +2,11 @@ import axios from 'axios'
 
 export const getTenantApi = () => {
   if (typeof window === 'undefined') {
-    // ถ้ารันบน server → ส่ง dummy baseURL ไปก่อน (เช่นตอน SSR)
     return axios.create({ baseURL: '' })
   }
 
   const instance = axios.create({
-    baseURL: `http://${window.location.hostname}:8003`,
+    baseURL: `http://${window.location.hostname}/book_project`,
   })
 
   instance.interceptors.request.use((config) => {
@@ -18,7 +17,6 @@ export const getTenantApi = () => {
     }
     return config
   })
-
 
   instance.interceptors.response.use(
     res => res,

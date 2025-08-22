@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import { getTenantApi } from '@/services/tenantApi'
 import { AdminLoginResponse } from '@/types/auth'
+import Cookies from 'js-cookie'
 
 export default function TenantLoginPage() {
   const [email, setEmail] = useState('')
@@ -16,18 +17,28 @@ export default function TenantLoginPage() {
   const { setToken } = useAuth()
 
   const handleLogin = async () => {
-    try {
-      const tenantApi = getTenantApi() // ✅ เรียกก่อน
-      const res = await tenantApi.post<AdminLoginResponse>('/api/auth/login/', {
-        email,
-        password,
-      })
-      setToken(res.data.access)
-      router.push('/book')
-    } catch (err: any) {
-      setError('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมลหรือรหัสผ่าน')
-    }
+  try {
+    const tenantApi = getTenantApi()
+    const res = await tenantApi.post<AdminLoginResponse>('/api/auth/login/', {
+      email,
+      password,
+    })
+
+    // ✅ Save to AuthContext (localStorage)
+    setToken(res.data.access)
+
+    // ✅ Also save to cookie for middleware to access
+    Cookies.set('token', res.data.access, {
+      expires: 1, // 1 วัน
+      secure: process.env.NODE_ENV === 'production', // 👈 ใช้ secure เฉพาะใน production
+      sameSite: 'lax',
+    })
+
+    window.location.href = '/book' 
+  } catch (err: any) {
+    setError('เข้าสู่ระบบไม่สำเร็จ: กรุณาตรวจสอบอีเมลหรือรหัสผ่าน')
   }
+}
 
   return (
     <div className="max-w-md mx-auto py-16 px-4">
