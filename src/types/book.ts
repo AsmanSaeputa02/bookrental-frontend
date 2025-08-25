@@ -4,6 +4,7 @@ export interface Typebook {
   title: string
   author: string
   stock: number
+  available_count: number
 }
 
 // API Response types
@@ -20,19 +21,7 @@ export interface BookListResponse {
   resData?: string | null
 }
 
-// เพิ่ม types อื่นๆ ที่เกี่ยวข้องกับ book ได้
-export interface CreateBookRequest {
-  title: string
-  author: string
-  stock: number
-}
 
-export interface UpdateBookRequest {
-  id: number
-  title?: string
-  author?: string
-  stock?: number
-}
 
 // Type สำหรับ Axios Response
 export type BookApiResponseType = Typebook[] | BookApiResponse | BookListResponse

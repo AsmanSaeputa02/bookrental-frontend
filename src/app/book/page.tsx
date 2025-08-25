@@ -1,30 +1,55 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { getTenantApi } from '@/services/tenantApi'
 import { BookApiResponseType, Typebook } from '@/types/book'
+import Cookies from 'js-cookie'
 
 export default function BookPage() {
   const [books, setBooks] = useState<Typebook[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    const fetchBooks = async () => {
+    const checkAndFetchBooks = async () => {
       try {
         setLoading(true)
         setError('')
 
-        const token = localStorage.getItem('tenant_token')
+        // ตรวจสอบ token ทุกแหล่ง
+        const tokenFromLocalStorage = localStorage.getItem('tenant_token')
+        const tokenFromCookie = Cookies.get('token')
+        
+        console.log('🔍 Token check:')
+        console.log('  - localStorage:', !!tokenFromLocalStorage)
+        console.log('  - Cookie:', !!tokenFromCookie)
+        
+        // ใช้ token ที่มี
+        const token = tokenFromLocalStorage || tokenFromCookie
+
         if (!token) {
           setError('ไม่พบ token การเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่')
+          setTimeout(() => {
+            router.push('/auth/login')
+          }, 2000)
           return
         }
 
+        // ถ้ามี token แต่ไม่มีใน localStorage ให้เก็บไว้
+        if (!tokenFromLocalStorage && tokenFromCookie) {
+          localStorage.setItem('tenant_token', tokenFromCookie)
+          console.log('✅ Copied token from cookie to localStorage')
+        }
+
         const tenantApi = getTenantApi()
+        console.log('🚀 Calling API with token:', token.substring(0, 20) + '...')
 
         const res = await tenantApi.get<BookApiResponseType>('/api/book/')
         const resData = res.data
+
+        console.log('📦 API Response:', resData)
 
         let booksData: Typebook[] = []
 
@@ -35,16 +60,30 @@ export default function BookPage() {
         } else if ('results' in resData && Array.isArray(resData.results)) {
           booksData = resData.results
         } else {
+          console.error('Unexpected response format:', resData)
           setError('รูปแบบข้อมูลจาก API ไม่ถูกต้อง')
           return
         }
 
+        console.log('📚 Books loaded:', booksData.length)
         setBooks(booksData)
+
       } catch (err: any) {
+        console.error('❌ Error details:', err)
+        
         if (err.response) {
+          console.log('Response status:', err.response.status)
+          console.log('Response data:', err.response.data)
+          
           switch (err.response.status) {
             case 401:
               setError('ไม่มีสิทธิ์เข้าถึง กรุณาเข้าสู่ระบบใหม่')
+              // ล้าง token และ redirect
+              localStorage.removeItem('tenant_token')
+              Cookies.remove('token')
+              setTimeout(() => {
+                router.push('/auth/login')
+              }, 2000)
               break
             case 404:
               setError('ไม่พบ API endpoint นี้ (/api/book/)')
@@ -65,8 +104,11 @@ export default function BookPage() {
       }
     }
 
-    fetchBooks()
-  }, [])
+    // รอสักครู่ให้ localStorage โหลดเสร็จ
+    const timeoutId = setTimeout(checkAndFetchBooks, 100)
+    
+    return () => clearTimeout(timeoutId)
+  }, [router])
 
   if (loading) {
     return (
@@ -79,7 +121,19 @@ export default function BookPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">📚 รายการหนังสือ</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">📚 รายการหนังสือ</h1>
+        <button 
+          onClick={() => {
+            localStorage.removeItem('tenant_token')
+            Cookies.remove('token')
+            router.push('/auth/login')
+          }}
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          ออกจากระบบ
+        </button>
+      </div>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -112,7 +166,7 @@ export default function BookPage() {
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {book.stock}
+                      {book.available_count}
                     </span>
                   </td>
                 </tr>
@@ -123,10 +177,13 @@ export default function BookPage() {
       )}
 
       {/* Debug Info */}
-      <div className="mt-6 p-4 bg-gray-100 text-sm">
+      <div className="mt-6 p-4 bg-gray-100 text-sm rounded">
         <p><strong>Debug Info:</strong></p>
         <p>Books count: {books.length}</p>
         <p>API Host: {typeof window !== 'undefined' ? window.location.hostname : 'loading'}</p>
+        <p>Has localStorage token: {typeof window !== 'undefined' ? !!localStorage.getItem('tenant_token') : 'loading'}</p>
+        <p>Has cookie token: {typeof window !== 'undefined' ? !!Cookies.get('token') : 'loading'}</p>
+        <p>Current URL: {typeof window !== 'undefined' ? window.location.href : 'loading'}</p>
       </div>
     </div>
   )
